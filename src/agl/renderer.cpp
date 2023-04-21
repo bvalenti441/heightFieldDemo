@@ -546,12 +546,12 @@ void Renderer::setUniform(const std::string& name, GLuint val) {
 void Renderer::loadCubemap(const std::string& name,
     const string& dir, int slot) {
   vector<string> faces = {
-      dir + "/right.png",
-      dir + "/left.png",
-      dir + "/top.png",
-      dir + "/bottom.png",
-      dir + "/back.png",
-      dir + "/front.png",
+      dir + "/right.jpg",
+      dir + "/left.jpg",
+      dir + "/top.jpg",
+      dir + "/bottom.jpg",
+      dir + "/back.jpg",
+      dir + "/front.jpg",
   };
   loadCubemap(name, faces, slot);
 }

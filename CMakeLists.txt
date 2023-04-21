@@ -84,12 +84,14 @@ link_directories(${LIBRARY_DIRS})
 file(GLOB SOURCES "src/agl/*.h" "src/agl/*.cpp" "src/agl/mesh/*.h" "src/agl/mesh/*.cpp") 
 
 set(SHADERS
+    shaders/cubemap.vs
+    shaders/cubemap.fs
     shaders/unlit.vs
     shaders/unlit.fs
     )
 
-add_executable(demo src/demo.cpp ${SOURCES} ${SHADERS})
-target_link_libraries(demo ${CORE})
+add_executable(heightFieldDemo src/demo.cpp ${SOURCES} ${SHADERS})
+target_link_libraries(heightFieldDemo ${CORE})
 
 if (WIN32)
   source_group("shaders" FILES ${SHADERS})
