@@ -81,16 +81,20 @@ endif()
 include_directories(${INCLUDE_DIRS})
 link_directories(${LIBRARY_DIRS})
 
-file(GLOB SOURCES "src/agl/*.h" "src/agl/*.cpp" "src/agl/mesh/*.h" "src/agl/mesh/*.cpp") 
+file(GLOB SOURCES "src/plymesh.h" "src/osutils.h" "src/agl/*.h" "src/agl/*.cpp" "src/agl/mesh/*.h" "src/agl/mesh/*.cpp") 
 
 set(SHADERS
     shaders/cubemap.vs
     shaders/cubemap.fs
     shaders/unlit.vs
     shaders/unlit.fs
+    shaders/phong-pixel.vs
+    shaders/phong-pixel.fs
+    shaders/water-phong-pixel.vs
+    shaders/water-phong-pixel.fs
     )
 
-add_executable(heightFieldDemo src/demo.cpp ${SOURCES} ${SHADERS})
+add_executable(heightFieldDemo src/demo.cpp src/plymesh.cpp src/osutils.cpp ${SOURCES} ${SHADERS})
 target_link_libraries(heightFieldDemo ${CORE})
 
 if (WIN32)

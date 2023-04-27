@@ -8,25 +8,17 @@
 #include <ctime>
 #include "agl/window.h"
 #include "agl/mesh/plane.h"
-/*#include "plymesh.h"
-#include "osutils.h"*/
+#include "plymesh.h"
+#include "osutils.h"
 
 using namespace std;
 using namespace glm;
 using namespace agl;
 
-struct Particle {
-    glm::vec3 pos;
-    glm::vec3 vel;
-    glm::vec4 color;
-    float rot;
-    float size;
-    bool exploded;
-};
-
+// From: Savvy Sine, Aline Normoyle 2020
 class UndulateMesh : public agl::Plane {
 public:
-    UndulateMesh(int xsize, int ysize) : Plane(1, 1, xsize, ysize) {
+    UndulateMesh(int xsize, int ysize) : Plane(4.8f, 4.8f, xsize, ysize) {
         setIsDynamic(true);
         init();  // initialize the mesh rather than wait for first frame
     }
@@ -42,11 +34,22 @@ public:
     vec3 position(const vec3& p, float t) {
         float angle = t;
         float frequency = 7.0;
-        float amplitude = 0.05;
+        float amplitude = 0.1;
 
         float heightFn = (angle + frequency * p[0] * frequency * p[2]);
         float y = amplitude * sin(heightFn);
-        return vec3(p.x, y, p.z);
+        float x, z;
+        if (sqrt(pow(p.x, 2) + pow(p.z, 2)) > 2.4f) {
+            float theta = atan2(p.z, p.x);
+            x = 2.4f * cos(theta);
+            z = 2.4f * sin(theta);
+        }
+        else {
+            x = p.x;
+            z = p.z;
+        }
+
+        return vec3(x, y, z);
     }
 
     vec3 normal(const vec3& p, float t) {
@@ -66,20 +69,17 @@ public:
   void setup() {
       setWindowSize(1000, 1000);
       renderer.loadCubemap("cubemap", "../textures/garden", 0);
+      renderer.loadShader("phong-pixel", "../shaders/phong-pixel.vs", "../shaders/phong-pixel.fs");
+      renderer.loadShader("water-phong-pixel", "../shaders/water-phong-pixel.vs", "../shaders/water-phong-pixel.fs");
+      fountain.load("../models/fountain.ply");
+      renderer.loadTexture("bricks", "../textures/bricks.png", 0);
+      renderer.loadTexture("water", "../textures/water.jpg", 1);
       perspective(glm::radians<float>(60.0), 1.0f, 0.1f, 100.0f);
-      
-      /* createConfetti(300);
-      renderer.setDepthTest(false);
-      renderer.blendMode(agl::ADD); 
-
-      renderer.loadShader("unlit", "../shaders/unlit.vs", "../shaders/unlit.fs");
-      mesh.load("../models/fountain.ply");
-      vec3 mins = mesh.minBounds();
-      vec3 maxs = mesh.maxBounds();
-      float scale = glm::min(glm::min(10 / (maxs.x - mins.x), 10 / (maxs.y - mins.y)), 10 / (maxs.z - mins.z));
-      scalar = vec3(scale, scale, scale);
-      translation = vec3(-(mins.x + (maxs.x - mins.x) / 2), -(mins.y + (maxs.y - mins.y) / 2), -(mins.z + (maxs.z - mins.z) / 2));
-      rotation = vec3(0, 0, 0);*/
+      renderer.setUniform("eyePos", eyePos);
+      renderer.setUniform("lightPos", lightPos);
+      renderer.setUniform("material.ambient", vec3(0.1, 0.1, 0.1));
+      renderer.setUniform("material.diffuse", vec3(1.0, 0.0, 1.0));
+      renderer.setUniform("material.specular", vec3(1.0, 1.0, 1.0));
   }
 
   void repositionCamera(GLfloat r, GLfloat az, GLfloat el) {
@@ -87,39 +87,6 @@ public:
       eyePos.y = r * sin(el);
       eyePos.z = r * sin(az) * cos(el);
   }
-
-  /*void createConfetti(int size)
-  {
-      for (int i = 0; i < 10; ++i) {
-          Particle particle;
-          particle.color = vec4(agl::randomUnitCube(), 0);
-          particle.vel = vec3(0, 0.2f, 0);
-          particle.size = 0.5f;
-          particle.rot = 0;
-          particle.exploded = false;
-          mParticles.push_back(particle);
-      }
-  }
-
-  void updateConfetti()
-  {
-     for (int i = 0; i < 10; ++i)
-     {
-          mParticles[i].pos += mParticles[i].vel * dt();
-          mParticles[i].vel += vec3(0, -0.5f, 0) * dt();
-     }
-  }
-
-  void drawConfetti()
-  {
-      renderer.loadTexture("particle", "../textures/ParticleFlare.png", 0);
-
-      for (int i = 0; i < mParticles.size(); i++)
-      {
-          Particle particle = mParticles[i];
-          renderer.sprite(particle.pos, particle.color, particle.size, particle.rot);
-      }
-  }*/
 
   void mouseMotion(int x, int y, int dx, int dy) {
       if (leftMouseDown && leftShiftDown) {
@@ -159,17 +126,14 @@ public:
   }
   
   void scroll(float dx, float dy) {
-      if (dy > 0 && Radius == 1) {
+      if (dy > 0 && Radius <= 1) {
           return;
       }
-      else if (dy < 0 && Radius == 10) {
+      else if (dy < 0 && Radius >= 10) {
           return;
       }
-      else if (dy < 0) {
-          Radius++;
-      }
-      else if (dy > 0) {
-          Radius--;
+      else {
+          Radius -= dy;
       }
       repositionCamera(Radius, Azimuth, Elevation);
   }
@@ -178,50 +142,46 @@ public:
   }
 
   void draw() {
-
-      /*renderer.beginShader("unlit"); // activates shader with given name
-      renderer.setUniform("eyePos", eyePos);
-      renderer.setUniform("lightPos", lightPos);
-      renderer.setUniform("material.ambient", vec3(0.1, 0.1, 0.1));
-      renderer.setUniform("material.diffuse", vec3(0.0, 0.0, 1.0));
-      renderer.setUniform("material.specular", vec3(1.0, 1.0, 1.0));
-      float aspect = ((float)width()) / height();
-      renderer.perspective(glm::radians(60.0f), aspect, 0.1f, 50.0f);
-      renderer.lookAt(eyePos, lookPos, up);
-      renderer.rotate(rotation);
-      renderer.scale(scalar);
-      renderer.translate(translation);
-      renderer.mesh(mesh);
-      renderer.endShader();*/
-
       renderer.beginShader("cubemap");
       renderer.skybox(10);
       renderer.endShader();
 
+      renderer.beginShader("phong-pixel");
+      renderer.push();
+      vec3 x = vec3(cos(M_PI/32), 0, sin(M_PI/32));
+      vec3 y = vec3(0, 1, 0);
+      vec3 z = vec3(-sin(M_PI/32), 0, cos(-M_PI/32));
+      renderer.rotate(mat3(x, y, z));
+      renderer.translate(vec3(0, -4.0f, 0));
+      renderer.texture("tex", "bricks");
+      renderer.mesh(fountain);
+      renderer.pop();
+      renderer.endShader();
+
+      renderer.beginShader("water-phong-pixel");
+      renderer.push();
       _mesh.update(elapsedTime());
-      renderer.rotate(kPI * 0.2, vec3(1, 0, 0));
+      renderer.translate(vec3(0, -3.2f, 0));
+      renderer.texture("tex", "water");
       renderer.mesh(_mesh);
+      renderer.pop();
+      renderer.endShader();
+
       renderer.lookAt(eyePos, lookPos, up);
   }
-
   UndulateMesh _mesh = UndulateMesh(100, 100);
 
 protected:
-    //PLYMesh mesh;
-    vec3 eyePos = vec3(3, 0, 0);
-    vec3 lookPos = vec3(0, 0, 0);
+    PLYMesh fountain;
+    vec3 eyePos = vec3(0, -2.0f, 5.0f);
+    vec3 lightPos = vec3(-5.0f, 3.0f, -1.0f);
+    vec3 lookPos = vec3(0, -2.0f, 0);
     vec3 up = vec3(0, 1, 0);
-    vec3 position = vec3(1, 0, 0);
-    std::vector<Particle> mParticles;
-    vec3 rotation;
-    vec3 translation;
-    vec3 scalar;
-    GLfloat Radius = 3;
-    GLfloat Azimuth = 0;
+    GLfloat Radius = 5.0f;
+    GLfloat Azimuth = M_PI / 2;
     GLfloat Elevation = 0;
     bool leftMouseDown = false;
     bool leftShiftDown = false;
-    vec3 lightPos = vec3(10.0f, 10.0f, 10.0f);
 };
 
   int main(int argc, char** argv)
