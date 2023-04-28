@@ -72,11 +72,10 @@ public:
       renderer.loadShader("phong-pixel", "../shaders/phong-pixel.vs", "../shaders/phong-pixel.fs");
       renderer.loadShader("water-phong-pixel", "../shaders/water-phong-pixel.vs", "../shaders/water-phong-pixel.fs");
       fountain.load("../models/fountain.ply");
-      renderer.loadTexture("bricks", "../textures/bricks.png", 0);
+      renderer.loadTexture("stone", "../textures/stone.png", 0);
       renderer.loadTexture("water", "../textures/water.jpg", 1);
       perspective(glm::radians<float>(60.0), 1.0f, 0.1f, 100.0f);
       renderer.setUniform("eyePos", eyePos);
-      renderer.setUniform("lightPos", lightPos);
       renderer.setUniform("material.ambient", vec3(0.1, 0.1, 0.1));
       renderer.setUniform("material.diffuse", vec3(1.0, 0.0, 1.0));
       renderer.setUniform("material.specular", vec3(1.0, 1.0, 1.0));
@@ -148,12 +147,8 @@ public:
 
       renderer.beginShader("phong-pixel");
       renderer.push();
-      vec3 x = vec3(cos(M_PI/32), 0, sin(M_PI/32));
-      vec3 y = vec3(0, 1, 0);
-      vec3 z = vec3(-sin(M_PI/32), 0, cos(-M_PI/32));
-      renderer.rotate(mat3(x, y, z));
-      renderer.translate(vec3(0, -4.0f, 0));
-      renderer.texture("tex", "bricks");
+      renderer.translate(vec3(0.5f, -4.0f, 0));
+      renderer.texture("tex", "stone");
       renderer.mesh(fountain);
       renderer.pop();
       renderer.endShader();
